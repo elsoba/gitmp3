@@ -107,5 +107,5 @@ youtube-search
 yt-dlp
 ytmusicapi
 ytsearch
-zopeevent
+zope.event
 zopeinterfacepost
