@@ -73,7 +73,6 @@ Pygments
 pyinstaller
 pyinstaller-hooks-contrib
 pykakasi
-pyparsing
 python-dateutilpost
 python-Levenshtein
 python-slugify
