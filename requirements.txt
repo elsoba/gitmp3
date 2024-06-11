@@ -44,7 +44,7 @@ imageio
 imageio-ffmpeg
 itsdangerous
 jaconv
-Jinja
+Jinja2
 jsonify
 Levenshtein
 logging
