@@ -13,7 +13,6 @@ Brotli
 cachetools
 certifi
 cffi
-coloramaf
 commonmark
 dacite
 decorator
