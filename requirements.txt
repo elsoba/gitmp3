@@ -17,7 +17,7 @@ chardet
 charset-normalizer
 click
 clipboard
-colorama
+coloramaf
 commonmark
 dacite
 decorator
