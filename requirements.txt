@@ -80,7 +80,7 @@ setuptools
 six
 sniffio
 soundcloud-lib
-soundcloud-v
+soundcloud-v2
 soupsieve
 spotdl
 spotipy
