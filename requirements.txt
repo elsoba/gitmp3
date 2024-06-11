@@ -91,7 +91,7 @@ tqdm
 typing_extensions
 Unidecode
 uritemplate
-urllib
+urllib3
 urwid
 uvicorn
 waitress
