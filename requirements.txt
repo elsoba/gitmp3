@@ -5,7 +5,7 @@ annotated-types
 anyio
 attrs
 auto-py-to-exe
-beautifulsoup
+beautifulsoup4
 blinker
 bottle
 bottle-websocket
