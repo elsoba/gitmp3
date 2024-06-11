@@ -68,7 +68,6 @@ Pygments
 pytube
 pytube2
 pytube3
-pywin-ctypes
 PyYAML
 rapidfuzz
 redis
