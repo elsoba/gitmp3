@@ -72,7 +72,6 @@ pydantic_core
 Pygments
 pyinstaller
 pyinstaller-hooks-contrib
-pykakasi
 python-dateutilpost
 python-Levenshtein
 python-slugify
