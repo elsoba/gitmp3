@@ -16,7 +16,6 @@ cffi
 chardet
 charset-normalizer
 click
-clipboard
 coloramaf
 commonmark
 dacite
