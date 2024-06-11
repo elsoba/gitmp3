@@ -37,8 +37,8 @@ gevent
 gevent-websocket
 greenlet
 gunicorn
-h11
-httplib
+h
+httplib2
 idna
 imageio
 imageio-ffmpeg
