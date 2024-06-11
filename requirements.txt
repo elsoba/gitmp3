@@ -35,10 +35,9 @@ future
 fuzzywuzzy
 gevent
 gevent-websocket
-google-auth-httplib2
 greenlet
 gunicorn
-h
+h11
 httplib
 idna
 imageio
