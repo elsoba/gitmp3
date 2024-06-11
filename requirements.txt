@@ -70,13 +70,9 @@ pycryptodomex
 pydantic
 pydantic_core
 Pygments
-pyinstaller
-python-dateutilpost
-python-Levenshtein
-python-slugify
 pytube
-pytube
-pytube
+pytube2
+pytube3
 pywin-ctypes
 PyYAML
 rapidfuzz
