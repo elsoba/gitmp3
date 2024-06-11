@@ -1,0 +1,300 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>はい</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-image: url('https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExbGNuazQxcGZuYjIyOHZ2emU1amp1bXNnbnhncHkycmdnOGFkZG1pcCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/U3qYN8S0j3bpK/giphy.webp');
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+        }
+
+        @font-face {
+            font-family: 'Press Start 2P', sans-serif;
+            font-display: swap;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.0);
+            text-align: center;
+            color: #fff;
+            animation: fadeIn 1s ease;
+            background: rgba(0, 0, 0, 0.0);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            font-family: 'Press Start 2P', sans-serif;
+            font-size: 48px;
+            color: #ffffff;
+            text-shadow:
+                -2px -2px 0 #800080, /* Violet */
+                2px -2px 0 #be29ec, /* Purple */
+                -2px 2px 0 #d896ff, /* Lavender */
+                2px 2px 0 #efbbff; /* Light Pink */
+            transform: skew(-10deg, -10deg);
+            display: inline-block;
+        }
+
+        .wobbly {
+            animation: wave 1.5s infinite;
+        }
+
+        @keyframes wave {
+            0%, 100% {
+                transform: translateY(0) rotate(0deg);
+            }
+            15% {
+                transform: translateY(-15px) rotate(-15deg);
+            }
+            30% {
+                transform: translateY(10px) rotate(10deg);
+            }
+            45% {
+                transform: translateY(-10px) rotate(-10deg);
+            }
+            60% {
+                transform: translateY(15px) rotate(15deg);
+            }
+            75% {
+                transform: translateY(-5px) rotate(-5deg);
+            }
+        }
+
+        .youtube-url-input {
+            width: calc(100% - 40px);
+            padding: 10px;
+            margin-top: 20px;
+            font-size: 16px;
+            border: 1px solid;
+            border-radius: 5px;
+            box-sizing: border-box;
+            background-color: #222;
+            color: #fff;
+            position: relative;
+            overflow: hidden;
+            border-color: #ccc; /* Default border color */
+        }
+
+        .youtube-url-input:focus {
+            animation: lightEffect 2s ease-in-out forwards; /* Run animation when focused */
+        }
+
+        .lightEffect {
+            animation: lightEffect 2s ease-in-out forwards;
+        }
+
+        @keyframes lightEffect {
+            0% {
+                box-shadow: 0 0 0 0 var(--randomColor), inset 0 0 0 0 var(--randomColor);
+            }
+            50% {
+                box-shadow: 0 0 0 15px rgba(190, 41, 236, 0), inset 0 0 0 7px rgba(190, 41, 236, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(190, 41, 236, 0), inset 0 0 0 0 rgba(190, 41, 236, 0);
+            }
+        }
+
+        .download-button {
+            display: inline-block;
+            color: black;
+            padding: 14px 20px;
+            margin: 20px 0;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+            animation: rainbow 4s infinite;
+        }
+
+        @keyframes rainbow {
+            0% {
+                background-color: #ff0000; /* Red */
+            }
+            14% {
+                background-color: #ff7f00; /* Orange */
+            }
+            28% {
+                background-color: #ffff00; /* Yellow */
+            }
+            42% {
+                background-color: #00ff00; /* Green */
+            }
+            56% {
+                background-color: #0000ff; /* Blue */
+            }
+            70% {
+                background-color: #4b0082; /* Indigo */
+            }
+            84% {
+                background-color: #9400d3; /* Violet */
+            }
+            100% {
+                background-color: #ff0000; /* Red */
+            }
+        }
+
+        .download-button:hover {
+            animation-play-state: paused; /* Pause animation on hover */
+        }
+
+        .download-button:active {
+            background-color: #3e8e41;
+        }
+
+
+        }
+
+        .drop-area.dragover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 id="glitchText">ベストジーニスト</h1>
+        <form action="/download" method="post" enctype="multipart/form-data">
+            <input type="text" name="search_input" class="youtube-url-input" placeholder="Enter YouTube URL or search term">
+            <button type="submit" class="download-button" id="downloadButton">ダウンロード</button>
+        </form>
+        <div class="drop-area" id="drop-area">
+            <h2>ドラッグアンドドロップ</h2>
+            <p>Supported formats: .vlc, .mov, .mp4, .avi</p>
+        </div>
+    </div>
+
+    <script>
+        const dropArea = document.getElementById('drop-area');
+
+        dropArea.addEventListener('dragover', (event) => {
+            event.preventDefault();
+            dropArea.classList.add('dragover');
+        });
+
+        dropArea.addEventListener('dragleave', () => {
+            dropArea.classList.remove('dragover');
+        });
+
+        dropArea.addEventListener('drop', (event) => {
+            event.preventDefault();
+            dropArea.classList.remove('dragover');
+            const files = event.dataTransfer.files;
+            handleFiles(files);
+        });
+
+        function handleFiles(files) {
+            const formData = new FormData();
+            for (let i = 0; i < files.length; i++) {
+                formData.append('file', files[i]);
+            }
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            }).then(response => response.blob())
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = 'converted.mp3';  // You can change the file name here
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+            }).catch(error => {
+                console.error('Error:', error);
+            });
+        }
+
+        const downloadButton = document.getElementById('downloadButton');
+        const glitchText = document.getElementById('glitchText');
+        const youtubeUrlInput = document.querySelector('.youtube-url-input');
+
+        const texts = [
+            "ベストジーニスト",
+            "デク",
+            "ビッグスリー",
+            "ライト",
+            "ドラゴナイト"
+        ];
+        let currentTextIndex = 0;
+
+        // Generate a random color
+        function getRandomColor() {
+            return '#' + Math.floor(Math.random()*16777215).toString(16);
+        }
+
+        // Set initial random color for the search bar border and light effect
+        const initialColor = getRandomColor();
+        youtubeUrlInput.style.borderColor = initialColor;
+        document.documentElement.style.setProperty('--randomColor', initialColor);
+
+        // Event listener for download button click to change its background color
+        downloadButton.addEventListener('click', function() {
+            const randomColor = getRandomColor();
+            this.style.backgroundColor = randomColor;
+
+            updateTextShadow();
+        });
+
+        // Event listener for youtube URL input input event to change its border color
+        youtubeUrlInput.addEventListener('input', function() {
+            const randomColor = getRandomColor();
+            this.style.borderColor = randomColor;
+            document.documentElement.style.setProperty('--randomColor', randomColor);
+            this.classList.add('lightEffect');
+            setTimeout(() => {
+                this.classList.remove('lightEffect');
+            }, 2000); // Remove light effect after 2 seconds
+        });
+
+        // Function to update the text and trigger animation
+        function updateTextAndAnimation() {
+            glitchText.textContent = texts[currentTextIndex];
+            updateTextShadow();
+        }
+
+        // Initial update
+        updateTextAndAnimation();
+
+        // Interval to change the text every 3 seconds and update animation
+        setInterval(function() {
+            currentTextIndex = (currentTextIndex + 1) % texts.length;
+            updateTextAndAnimation();
+        }, 3000); // Change text every 3 seconds
+
+        // Function to update the text shadow with random colors
+        function updateTextShadow() {
+            glitchText.style.textShadow = `
+                -2px -2px 0 ${getRandomColor()}, /* Violet */
+                2px -2px 0 ${getRandomColor()}, /* Purple */
+                -2px 2px 0 ${getRandomColor()}, /* Lavender */
+                2px 2px 0 ${getRandomColor()} /* Light Pink */
+            `;
+        }
+    </script>
+</body>
+</html>
