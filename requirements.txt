@@ -108,4 +108,4 @@ yt-dlp
 ytmusicapi
 ytsearch
 zope.event
-zopeinterfacepost
+zope.interface
