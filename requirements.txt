@@ -10,7 +10,6 @@ blinker
 bottle
 bottle-websocket
 Brotli
-bs
 cachetools
 certifi
 cffi
