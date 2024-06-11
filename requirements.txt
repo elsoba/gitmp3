@@ -74,7 +74,6 @@ pyinstaller
 pyinstaller-hooks-contrib
 pykakasi
 pyparsing
-pyperclip
 python-dateutilpost
 python-Levenshtein
 python-slugify
