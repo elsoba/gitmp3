@@ -25,7 +25,19 @@ from pytube.contrib.search import Search
 
 
 
+import asyncio
+import concurrent.futures
+import logging
+from pathlib import Path
+from typing import List, Optional, Tuple, Union
 
+from spotdl._version import __version__
+from spotdl.console import console_entry_point
+from spotdl.download.downloader import Downloader
+from spotdl.types.options import DownloaderOptionalOptions, DownloaderOptions
+from spotdl.types.song import Song
+from spotdl.utils.search import parse_query
+from spotdl.utils.spotify import SpotifyClient
 
 
 
