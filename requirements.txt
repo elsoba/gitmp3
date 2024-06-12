@@ -109,3 +109,4 @@ ytmusicapi
 ytsearch
 zope.event
 zope.interface
+syslog-rfc5424-formatter
