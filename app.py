@@ -8,6 +8,33 @@ from pytube import YouTube
 from ytsearch import YTSearch  # Assuming this is your custom module
 from sclib import SoundcloudAPI, Track
 from flask.helpers import send_file
+
+
+
+
+
+
+from pytube.version import __version__
+from pytube.streams import Stream
+from pytube.captions import Caption
+from pytube.query import CaptionQuery, StreamQuery
+from pytube.__main__ import YouTube
+from pytube.contrib.playlist import Playlist
+from pytube.contrib.channel import Channel
+from pytube.contrib.search import Search
+
+
+
+
+
+
+
+
+
+
+
+
+
 import re
 
 app = Flask(__name__)
