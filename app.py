@@ -196,10 +196,18 @@ def download():
             try:
                 return send_file(downloaded_song, as_attachment=True)
             except Exception as e:
-                print(f"Error serving song: {str(e)}")
+                app.logger.error(f"Error serving song: {str(e)}")
                 return redirect(url_for('index'))
 
     return redirect(url_for('index'))
 
+if __name__ != "__main__":
+    gunicorn_error_logger = logging.getLogger('gunicorn.error')
+    app.logger.handlers.extend(gunicorn_error_logger.handlers)
+    app.logger.setLevel(logging.DEBUG)
+
 if __name__ == "__main__":
+    handler = RotatingFileHandler('flask.log', maxBytes=10000, backupCount=1)
+    handler.setLevel(logging.INFO)
+    app.logger.addHandler(handler)
     app.run(debug=True)
