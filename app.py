@@ -201,12 +201,16 @@ def download():
     return redirect(url_for('index'))
 
 if __name__ != "__main__":
-    gunicorn_error_logger = logging.getLogger('gunicorn.error')
-    app.logger.handlers.extend(gunicorn_error_logger.handlers)
-    app.logger.setLevel(logging.DEBUG)
+    # Remove references to Gunicorn
+    pass
 
 if __name__ == "__main__":
+    # Use logging.basicConfig for simpler setup and better stdout logging
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
+
+    # Additional RotatingFileHandler for file logging
     handler = RotatingFileHandler('flask.log', maxBytes=10000, backupCount=1)
     handler.setLevel(logging.INFO)
     app.logger.addHandler(handler)
-    app.run(debug=True)
+
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)), debug=True)
