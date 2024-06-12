@@ -22,8 +22,8 @@ os.makedirs(UPLOAD_DIRECTORY, exist_ok=True)
 os.makedirs(CONVERTED_DIRECTORY, exist_ok=True)
 
 # Configure Papertrail
-LOG_SERVER = 'logsX.papertrailapp.com'  # Replace 'logsX' with your Papertrail endpoint
-LOG_PORT = 12345  # Replace with your Papertrail port number
+LOG_SERVER = 'logs.papertrailapp.com'  # Replace 'logsX' with your Papertrail endpoint
+LOG_PORT = 43303  # Replace with your Papertrail port number
 
 # Configure logging
 handler = SysLogHandler(address=(LOG_SERVER, LOG_PORT))
