@@ -13,8 +13,8 @@ app = Flask(__name__)
 app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
 
 # Directories
-UPLOAD_DIRECTORY = r'/app/uploads'
-CONVERTED_DIRECTORY = r'/app/converted'
+UPLOAD_DIRECTORY = '/tmp/uploads'
+CONVERTED_DIRECTORY = '/tmp/converted'
 
 os.makedirs(UPLOAD_DIRECTORY, exist_ok=True)
 os.makedirs(CONVERTED_DIRECTORY, exist_ok=True)
