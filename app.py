@@ -8,46 +8,9 @@ from pytube import YouTube
 from ytsearch import YTSearch  # Assuming this is your custom module
 from sclib import SoundcloudAPI, Track
 from flask.helpers import send_file
-
-
-
-
-
-
-from pytube.version import __version__
-from pytube.streams import Stream
-from pytube.captions import Caption
-from pytube.query import CaptionQuery, StreamQuery
-from pytube.__main__ import YouTube
-from pytube.contrib.playlist import Playlist
-from pytube.contrib.channel import Channel
-from pytube.contrib.search import Search
-
-
-
-import asyncio
-import concurrent.futures
-import logging
-from pathlib import Path
-from typing import List, Optional, Tuple, Union
-
-from spotdl._version import __version__
-from spotdl.console import console_entry_point
-from spotdl.download.downloader import Downloader
-from spotdl.types.options import DownloaderOptionalOptions, DownloaderOptions
-from spotdl.types.song import Song
-from spotdl.utils.search import parse_query
-from spotdl.utils.spotify import SpotifyClient
-
-
-
-
-
-
-
-
-
 import re
+from flask import redirect
+
 
 app = Flask(__name__)
 app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
@@ -94,6 +57,83 @@ def convert_to_mp3(video_file):
     except Exception as e:
         app.logger.error(f"Error converting video to MP3: {e}")
         return None
+
+
+
+
+
+
+def download_spotify(url):
+    try:
+        clear_downloaded_song()
+
+        # Spotify URL detected
+        spotdl_command = [
+            'spotdl',
+            url,
+            '--format', 'mp3',
+            '--overwrite', 'skip',
+            '--output', UPLOAD_DIRECTORY  # Specify the output directory
+        ]
+
+        process = subprocess.Popen(spotdl_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout, stderr = process.communicate()
+
+        if process.returncode != 0:
+            app.logger.error(f"Error downloading song: {stderr.decode('utf-8')}")
+            return redirect(url_for('index'), code=302)  # Redirect with status code 302 if there's an error downloading
+
+        mp3_files = [f for f in os.listdir(UPLOAD_DIRECTORY) if f.endswith('.mp3')]
+        if mp3_files:
+            downloaded_song = os.path.join(UPLOAD_DIRECTORY, mp3_files[0])
+            session['downloaded_song'] = downloaded_song
+            return downloaded_song
+        else:
+            return redirect(url_for('index'), code=302)  # Redirect with status code 302 if no mp3 file found
+
+    except Exception as e:
+        app.logger.error(f"Error downloading song: {str(e)}")
+        return redirect(url_for('index'), code=302)  # Redirect with status code 302 if an exception occurs
+
+
+# Function to download a song from YouTube
+def download_youtube(url):
+    try:
+        clear_downloaded_song()
+
+        # YouTube URL detected
+        yt = YouTube(url)
+        video = yt.streams.filter(only_audio=True).first()
+        if video:
+            app.logger.info(f"Downloading '{yt.title}'...")
+            audio_file = video.download(output_path=UPLOAD_DIRECTORY, filename=yt.title)
+            mp3_file = os.path.join(CONVERTED_DIRECTORY, os.path.splitext(os.path.basename(audio_file))[0] + '.mp3')
+
+            cmd = ['ffmpeg', '-i', audio_file, '-vn', '-ar', '44100', '-ac', '2', '-b:a', '192k', mp3_file]
+            subprocess.run(cmd, capture_output=True, check=True)
+
+            os.remove(audio_file)
+
+            app.logger.info('Download and conversion to MP3 successful!')
+            session['downloaded_song'] = mp3_file
+            return mp3_file
+        else:
+            app.logger.error(f"No audio stream available for '{yt.title}'.")
+            return redirect(url_for('index'), code=302)  # Redirect with status code 302 if no audio stream available
+
+    except Exception as e:
+        app.logger.error(f"Error downloading song: {str(e)}")
+        return redirect(url_for('index'), code=302)  # Redirect with status code 302 if an exception occurs
+
+
+
+
+
+
+
+
+
+
 
 # Function to download a song from Spotify, YouTube, or SoundCloud
 def download_song(url):
