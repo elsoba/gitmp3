@@ -186,6 +186,7 @@ def upload():
     return "Failed to convert file"
 
 @app.route('/download', methods=['POST'])
+@app.route('/download', methods=['POST'])
 def download():
     search_input = request.form.get('search_input')
 
