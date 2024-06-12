@@ -5,7 +5,6 @@ from werkzeug.utils import secure_filename
 from pytube import YouTube
 from ytsearch import YTSearch  # Assuming this is your custom module
 from sclib import SoundcloudAPI, Track
-from flask.helpers import send_file
 import re
 import logging
 from logging.handlers import RotatingFileHandler
@@ -14,8 +13,8 @@ app = Flask(__name__)
 app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
 
 # Directories
-UPLOAD_DIRECTORY = r'C:\Users\Calvin\Downloads\yesmp3\uploads'
-CONVERTED_DIRECTORY = r'C:\Users\Calvin\Downloads\yesmp3\converted'
+UPLOAD_DIRECTORY = r'/app/uploads'
+CONVERTED_DIRECTORY = r'/app/converted'
 
 os.makedirs(UPLOAD_DIRECTORY, exist_ok=True)
 os.makedirs(CONVERTED_DIRECTORY, exist_ok=True)
