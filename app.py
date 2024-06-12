@@ -5,30 +5,28 @@ from werkzeug.utils import secure_filename
 from pytube import YouTube
 from ytsearch import YTSearch  # Assuming this is your custom module
 from sclib import SoundcloudAPI, Track
+from flask.helpers import send_file
 import re
-import spotipy
-from spotipy.oauth2 import SpotifyClientCredentials
-import requests
-
-
 
 app = Flask(__name__)
 app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
 
+# Directories
 UPLOAD_DIRECTORY = r'C:\Users\Calvin\Downloads\yesmp3\uploads'
 CONVERTED_DIRECTORY = r'C:\Users\Calvin\Downloads\yesmp3\converted'
 
 os.makedirs(UPLOAD_DIRECTORY, exist_ok=True)
 os.makedirs(CONVERTED_DIRECTORY, exist_ok=True)
 
+# SoundCloud API client
 api = SoundcloudAPI()
 
-spotify_client = spotipy.Spotify(auth_manager=SpotifyClientCredentials(client_id="cec06f10e37e43b4823ffd0a85896306",
-                                                                       client_secret="bac4712cc6c447769d0507190161a646"))
-
+# Function to sanitize filenames
 def sanitize_filename(filename):
+    # Remove characters that are not allowed in Windows filenames
     return re.sub(r'[<>:"/\\|?*]', '_', filename)
 
+# Function to convert a video file to MP3 using ffmpeg
 def convert_to_mp3(video_file):
     try:
         input_file_path = os.path.join(UPLOAD_DIRECTORY, secure_filename(video_file.filename))
@@ -36,34 +34,49 @@ def convert_to_mp3(video_file):
 
         output_file_path = os.path.join(CONVERTED_DIRECTORY, os.path.splitext(video_file.filename)[0] + '.mp3')
 
+        # Convert using ffmpeg
         cmd = ['ffmpeg', '-i', input_file_path, '-vn', '-ar', '44100', '-ac', '2', '-b:a', '192k', output_file_path]
-        os.system(' '.join(cmd))
+        subprocess.run(cmd, capture_output=True, check=True)
 
-        os.remove(input_file_path)
+        os.remove(input_file_path)  # Remove the uploaded video file
 
         return output_file_path
     except Exception as e:
         print(f"Error converting video to MP3: {e}")
         return None
 
+# Function to download a song from Spotify, YouTube, or SoundCloud
 def download_song(url):
     try:
         clear_downloaded_song()
 
         if 'spotify.com' in url:
-            track_id = url.split('/')[-1]
-            track_info = spotify_client.track(track_id)
-            track_name = sanitize_filename(track_info['name'])
-            artist_name = sanitize_filename(track_info['artists'][0]['name'])
-            audio_file_path = os.path.join(UPLOAD_DIRECTORY, f"{artist_name} - {track_name}.mp3")
+            # Spotify URL detected
+            spotdl_command = [
+                'spotdl',
+                url,
+                '--format', 'mp3',
+                '--overwrite', 'skip',
+                '--output', UPLOAD_DIRECTORY  # Specify the output directory
+            ]
 
-            # Assuming you have another method to download the audio file
-            # For example, using a different library or an API endpoint
+            process = subprocess.Popen(spotdl_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            stdout, stderr = process.communicate()
 
-            session['downloaded_song'] = audio_file_path
-            return audio_file_path
+            if process.returncode != 0:
+                print(f"Error downloading song: {stderr.decode('utf-8')}")
+                return None
+
+            mp3_files = [f for f in os.listdir(UPLOAD_DIRECTORY) if f.endswith('.mp3')]
+            if mp3_files:
+                downloaded_song = os.path.join(UPLOAD_DIRECTORY, mp3_files[0])
+                session['downloaded_song'] = downloaded_song
+                return downloaded_song
+            else:
+                return None
 
         elif 'youtube.com' in url or 'youtu.be' in url:
+            # YouTube URL detected
             yt = YouTube(url)
             video = yt.streams.filter(only_audio=True).first()
             if video:
@@ -84,6 +97,7 @@ def download_song(url):
                 return None
 
         elif 'soundcloud.com' in url:
+            # SoundCloud URL detected
             track = api.resolve(url)
             if isinstance(track, Track):
                 title = sanitize_filename(track.title)
@@ -99,6 +113,7 @@ def download_song(url):
                 return None
 
         elif 'youtube.com' not in url and 'youtu.be' not in url:
+            # Assume it's a YouTube search term
             try:
                 search_engine = YTSearch()
                 video_info = search_engine.search_by_term(url, max_results=1)
@@ -138,6 +153,7 @@ def download_song(url):
         print(f"Error downloading song: {str(e)}")
         return None
 
+# Function to clear the downloaded song
 def clear_downloaded_song():
     if session.get('downloaded_song'):
         try:
@@ -147,10 +163,12 @@ def clear_downloaded_song():
             print(f"Error deleting downloaded song: {str(e)}")
         session['downloaded_song'] = None
 
+# Route to render the main page with the form
 @app.route('/')
 def index():
     return render_template('index.html')
 
+# Route to handle file upload and conversion
 @app.route('/upload', methods=['POST'])
 def upload():
     if 'file' not in request.files:
@@ -172,6 +190,9 @@ def upload():
             print(f"Error serving converted file: {str(e)}")
             return "Error serving converted file"
 
+    return "Failed to convert file"
+
+# Route to handle form submission and download song
 @app.route('/download', methods=['POST'])
 def download():
     search_input = request.form.get('search_input')
