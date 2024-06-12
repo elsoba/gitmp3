@@ -9,7 +9,6 @@ from ytsearch import YTSearch  # Assuming this is your custom module
 from sclib import SoundcloudAPI, Track
 from flask.helpers import send_file
 import re
-from syslog_rfc5424_formatter import RFC5424Formatter
 
 app = Flask(__name__)
 app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
@@ -23,11 +22,10 @@ os.makedirs(CONVERTED_DIRECTORY, exist_ok=True)
 
 # Configure Papertrail
 LOG_SERVER = 'logs.papertrailapp.com'  # Replace 'logsX' with your Papertrail endpoint
-LOG_PORT = 43303  # Replace with your Papertrail port number
+LOG_PORT = 43303 # Replace with your Papertrail port number
 
 # Configure logging
 handler = SysLogHandler(address=(LOG_SERVER, LOG_PORT))
-handler.setFormatter(RFC5424Formatter(appname='myapp', procid='-'))
 app.logger.addHandler(handler)
 app.logger.setLevel(logging.INFO)
 
@@ -167,59 +165,45 @@ def download_song(url):
         return None
 
 # Function to clear the downloaded
-def clear_downloaded_song():
-    if session.get('downloaded_song'):
-        try:
-            if os.path.exists(session['downloaded_song']):
-                os.remove(session['downloaded_song'])
-        except Exception as e:
-            app.logger.error(f"Error deleting downloaded song: {str(e)}")
-        session['downloaded_song'] = None
-
-# Route to render the main page with the form
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-# Route to handle file upload and conversion
 @app.route('/upload', methods=['POST'])
 def upload():
-    if 'file' not in request.files:
-        return redirect(request.url)
-
+if 'file' not in request.files:
+    return redirect(request.url)
     file = request.files['file']
 
-    if file.filename == '':
-        return redirect(request.url)
+if file.filename == '':
+    return redirect(request.url)
 
-    if file:
-        try:
-            converted_file = convert_to_mp3(file)
-            if converted_file:
-                return send_file(converted_file, as_attachment=True)
-            else:
-                return "Failed to convert file"
-        except Exception as e:
-            app.logger.error(f"Error serving converted file: {str(e)}")
-            return "Error serving converted file"
+if file:
+    try:
+        converted_file = convert_to_mp3(file)
+        if converted_file:
+            return send_file(converted_file, as_attachment=True)
+        else:
+            return "Failed to convert file"
+    except Exception as e:
+        app.logger.error(f"Error serving converted file: {str(e)}")
+        return "Error serving converted file"
 
-    return "Failed to convert file"
+return "Failed to convert file"
 
-# Route to handle form submission and download song
+
 @app.route('/download', methods=['POST'])
 def download():
     search_input = request.form.get('search_input')
 
-    if search_input:
-        downloaded_song = download_song(search_input)
-        if downloaded_song:
-            try:
-                return send_file(downloaded_song, as_attachment=True)
-            except Exception as e:
-                app.logger.error(f"Error serving song: {str(e)}")
-                return redirect(url_for('index'))
+if search_input:
+    downloaded_song = download_song(search_input)
+    if downloaded_song:
+        try:
+            return send_file(downloaded_song, as_attachment=True)
+        except Exception as e:
+            app.logger.error(f"Error serving song: {str(e)}")
+            return redirect(url_for('index'))
 
-    return redirect(url_for('index'))
+return redirect(url_for('index'))
 
-if __name__ == "__main__":
-    app.run(debug=True)
+if name == "main":
+app.run(debug=True)
+
+
