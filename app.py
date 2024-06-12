@@ -5,16 +5,15 @@ from werkzeug.utils import secure_filename
 from pytube import YouTube
 from ytsearch import YTSearch  # Assuming this is your custom module
 from sclib import SoundcloudAPI, Track
+from flask.helpers import send_file
 import re
-import logging
-from logging.handlers import RotatingFileHandler
 
 app = Flask(__name__)
 app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
 
 # Directories
-UPLOAD_DIRECTORY = '/tmp/uploads'
-CONVERTED_DIRECTORY = '/tmp/converted'
+UPLOAD_DIRECTORY = r'C:\Users\Calvin\Downloads\yesmp3\uploads'
+CONVERTED_DIRECTORY = r'C:\Users\Calvin\Downloads\yesmp3\converted'
 
 os.makedirs(UPLOAD_DIRECTORY, exist_ok=True)
 os.makedirs(CONVERTED_DIRECTORY, exist_ok=True)
@@ -24,6 +23,7 @@ api = SoundcloudAPI()
 
 # Function to sanitize filenames
 def sanitize_filename(filename):
+    # Remove characters that are not allowed in Windows filenames
     return re.sub(r'[<>:"/\\|?*]', '_', filename)
 
 # Function to convert a video file to MP3 using ffmpeg
@@ -42,7 +42,7 @@ def convert_to_mp3(video_file):
 
         return output_file_path
     except Exception as e:
-        app.logger.error(f"Error converting video to MP3: {e}")
+        print(f"Error converting video to MP3: {e}")
         return None
 
 # Function to download a song from Spotify, YouTube, or SoundCloud
@@ -51,19 +51,20 @@ def download_song(url):
         clear_downloaded_song()
 
         if 'spotify.com' in url:
+            # Spotify URL detected
             spotdl_command = [
                 'spotdl',
                 url,
                 '--format', 'mp3',
                 '--overwrite', 'skip',
-                '--output', UPLOAD_DIRECTORY
+                '--output', UPLOAD_DIRECTORY  # Specify the output directory
             ]
 
             process = subprocess.Popen(spotdl_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             stdout, stderr = process.communicate()
 
             if process.returncode != 0:
-                app.logger.error(f"Error downloading song: {stderr.decode('utf-8')}")
+                print(f"Error downloading song: {stderr.decode('utf-8')}")
                 return None
 
             mp3_files = [f for f in os.listdir(UPLOAD_DIRECTORY) if f.endswith('.mp3')]
@@ -75,10 +76,11 @@ def download_song(url):
                 return None
 
         elif 'youtube.com' in url or 'youtu.be' in url:
+            # YouTube URL detected
             yt = YouTube(url)
             video = yt.streams.filter(only_audio=True).first()
             if video:
-                app.logger.info(f"Downloading '{yt.title}'...")
+                print(f"Downloading '{yt.title}'...")
                 audio_file = video.download(output_path=UPLOAD_DIRECTORY, filename=yt.title)
                 mp3_file = os.path.join(CONVERTED_DIRECTORY, os.path.splitext(os.path.basename(audio_file))[0] + '.mp3')
 
@@ -87,29 +89,31 @@ def download_song(url):
 
                 os.remove(audio_file)
 
-                app.logger.info('Download and conversion to MP3 successful!')
+                print('Download and conversion to MP3 successful!')
                 session['downloaded_song'] = mp3_file
                 return mp3_file
             else:
-                app.logger.error(f"No audio stream available for '{yt.title}'.")
+                print(f"No audio stream available for '{yt.title}'.")
                 return None
 
         elif 'soundcloud.com' in url:
+            # SoundCloud URL detected
             track = api.resolve(url)
             if isinstance(track, Track):
                 title = sanitize_filename(track.title)
-                app.logger.info(f"Downloading '{title}'...")
+                print(f"Downloading '{title}'...")
                 audio_file_path = os.path.join(UPLOAD_DIRECTORY, secure_filename(title) + '.mp3')
                 with open(audio_file_path, 'wb+') as f:
                     track.write_mp3_to(f)
-                app.logger.info('Download from SoundCloud successful!')
+                print('Download from SoundCloud successful!')
                 session['downloaded_song'] = audio_file_path
                 return audio_file_path
             else:
-                app.logger.error('Failed to resolve track from SoundCloud')
+                print('Failed to resolve track from SoundCloud')
                 return None
 
         elif 'youtube.com' not in url and 'youtu.be' not in url:
+            # Assume it's a YouTube search term
             try:
                 search_engine = YTSearch()
                 video_info = search_engine.search_by_term(url, max_results=1)
@@ -119,7 +123,7 @@ def download_song(url):
                     yt = YouTube(video_url)
                     video = yt.streams.filter(only_audio=True).first()
                     if video:
-                        app.logger.info(f"Downloading '{yt.title}'...")
+                        print(f"Downloading '{yt.title}'...")
                         audio_file = video.download(output_path=UPLOAD_DIRECTORY, filename=yt.title)
                         mp3_file = os.path.join(CONVERTED_DIRECTORY, os.path.splitext(os.path.basename(audio_file))[0] + '.mp3')
 
@@ -128,40 +132,43 @@ def download_song(url):
 
                         os.remove(audio_file)
 
-                        app.logger.info('Download and conversion to MP3 successful!')
+                        print('Download and conversion to MP3 successful!')
                         session['downloaded_song'] = mp3_file
                         return mp3_file
                     else:
-                        app.logger.error(f"No audio stream available for '{yt.title}'.")
+                        print(f"No audio stream available for '{yt.title}'.")
                         return None
                 else:
-                    app.logger.error("No videos found for the search term.")
+                    print("No videos found for the search term.")
                     return None
 
             except Exception as e:
-                app.logger.error(f"An error occurred during YouTube download: {str(e)}")
+                print(f"An error occurred during YouTube download: {str(e)}")
                 return None
 
-        app.logger.error("Unsupported URL or unable to download.")
+        print("Unsupported URL or unable to download.")
         return None
 
     except Exception as e:
-        app.logger.error(f"Error downloading song: {str(e)}")
+        print(f"Error downloading song: {str(e)}")
         return None
 
+# Function to clear the downloaded song
 def clear_downloaded_song():
     if session.get('downloaded_song'):
         try:
             if os.path.exists(session['downloaded_song']):
                 os.remove(session['downloaded_song'])
         except Exception as e:
-            app.logger.error(f"Error deleting downloaded song: {str(e)}")
+            print(f"Error deleting downloaded song: {str(e)}")
         session['downloaded_song'] = None
 
+# Route to render the main page with the form
 @app.route('/')
 def index():
     return render_template('index.html')
 
+# Route to handle file upload and conversion
 @app.route('/upload', methods=['POST'])
 def upload():
     if 'file' not in request.files:
@@ -180,12 +187,12 @@ def upload():
             else:
                 return "Failed to convert file"
         except Exception as e:
-            app.logger.error(f"Error serving converted file: {str(e)}")
+            print(f"Error serving converted file: {str(e)}")
             return "Error serving converted file"
 
     return "Failed to convert file"
 
-@app.route('/download', methods=['POST'])
+# Route to handle form submission and download song
 @app.route('/download', methods=['POST'])
 def download():
     search_input = request.form.get('search_input')
@@ -196,22 +203,10 @@ def download():
             try:
                 return send_file(downloaded_song, as_attachment=True)
             except Exception as e:
-                app.logger.error(f"Error serving song: {str(e)}")
+                print(f"Error serving song: {str(e)}")
                 return redirect(url_for('index'))
 
     return redirect(url_for('index'))
 
-if __name__ != "__main__":
-    # Remove references to Gunicorn
-    pass
-
 if __name__ == "__main__":
-    # Use logging.basicConfig for simpler setup and better stdout logging
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
-
-    # Additional RotatingFileHandler for file logging
-    handler = RotatingFileHandler('flask.log', maxBytes=10000, backupCount=1)
-    handler.setLevel(logging.INFO)
-    app.logger.addHandler(handler)
-
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)), debug=True)
+    app.run(debug=True)
