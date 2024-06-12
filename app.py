@@ -205,6 +205,6 @@ def download():
     return redirect(url_for('index'))
 
 
-if name == "main":
+if __name__ == "main":
     app.run(debug=True)
 
