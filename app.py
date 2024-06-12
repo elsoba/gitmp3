@@ -5,7 +5,6 @@ from werkzeug.utils import secure_filename
 from pytube import YouTube
 from ytsearch import YTSearch  # Assuming this is your custom module
 from sclib import SoundcloudAPI, Track
-from flask.helpers import send_file
 import re
 
 app = Flask(__name__)
@@ -190,23 +189,20 @@ def upload():
             print(f"Error serving converted file: {str(e)}")
             return "Error serving converted file"
 
-    return "Failed to convert file"
-
-# Route to handle form submission and download song
 @app.route('/download', methods=['POST'])
 def download():
-    search_input = request.form.get('search_input')
+search_input = request.form.get('search_input')
+if search_input:
+    downloaded_song = download_song(search_input)
+    if downloaded_song:
+        try:
+            return send_file(downloaded_song, as_attachment=True)
+        except Exception as e:
+            print(f"Error serving song: {str(e)}")
+            return redirect(url_for('index'))
 
-    if search_input:
-        downloaded_song = download_song(search_input)
-        if downloaded_song:
-            try:
-                return send_file(downloaded_song, as_attachment=True)
-            except Exception as e:
-                print(f"Error serving song: {str(e)}")
-                return redirect(url_for('index'))
+return redirect(url_for('index'))
 
-    return redirect(url_for('index'))
+if name == "main":
+app.run(debug=True)
 
-if __name__ == "__main__":
-    app.run(debug=True)
