@@ -109,4 +109,3 @@ ytmusicapi
 ytsearch
 zope.event
 zope.interface
-gunicorn
