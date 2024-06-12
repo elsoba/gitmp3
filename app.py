@@ -1,6 +1,7 @@
 import os
 import subprocess
 import logging
+from logging.handlers import SysLogHandler  # Import SysLogHandler directly
 from flask import Flask, request, render_template, send_file, redirect, url_for, session
 from werkzeug.utils import secure_filename
 from pytube import YouTube
@@ -25,7 +26,7 @@ LOG_SERVER = 'logsX.papertrailapp.com'  # Replace 'logsX' with your Papertrail e
 LOG_PORT = 12345  # Replace with your Papertrail port number
 
 # Configure logging
-handler = logging.handlers.SysLogHandler(address=(LOG_SERVER, LOG_PORT))
+handler = SysLogHandler(address=(LOG_SERVER, LOG_PORT))
 handler.setFormatter(RFC5424Formatter(appname='myapp', procid='-'))
 app.logger.addHandler(handler)
 app.logger.setLevel(logging.INFO)
@@ -165,7 +166,7 @@ def download_song(url):
         app.logger.error(f"Error downloading song: {str(e)}")
         return None
 
-# Function to clear the downloaded song
+# Function to clear the downloaded
 def clear_downloaded_song():
     if session.get('downloaded_song'):
         try:
