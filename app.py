@@ -191,17 +191,19 @@ def upload():
 
 @app.route('/download', methods=['POST'])
 def download():
-search_input = request.form.get('search_input')
-if search_input:
-    downloaded_song = download_song(search_input)
-    if downloaded_song:
-        try:
-            return send_file(downloaded_song, as_attachment=True)
-        except Exception as e:
-            print(f"Error serving song: {str(e)}")
-            return redirect(url_for('index'))
+    search_input = request.form.get('search_input')
 
-return redirect(url_for('index'))
+    if search_input:
+        downloaded_song = download_song(search_input)
+        if downloaded_song:
+            try:
+                return send_file(downloaded_song, as_attachment=True)
+            except Exception as e:
+                print(f"Error serving song: {str(e)}")
+                return redirect(url_for('index'))
+
+    return redirect(url_for('index'))
+
 
 if name == "main":
 app.run(debug=True)
