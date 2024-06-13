@@ -20,5 +20,5 @@ youtube-search2
 youtube-search
 yt-dlp
 ytmusicapi
-ytsearch
+youtube-search2
 
