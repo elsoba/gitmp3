@@ -7,13 +7,14 @@ from ytsearch import YTSearch  # Assuming this is your custom module
 from sclib import SoundcloudAPI, Track
 from flask.helpers import send_file
 import re
+import time
 
 app = Flask(__name__)
 app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
 
 # Directories
-UPLOAD_DIRECTORY = r'C:\Users\Calvin\Downloads\yesmp3\uploads'
-CONVERTED_DIRECTORY = r'C:\Users\Calvin\Downloads\yesmp3\converted'
+UPLOAD_DIRECTORY = r'C:\Users\Calvin\Downloads\deleteme\uploads'
+CONVERTED_DIRECTORY = r'C:\Users\Calvin\Downloads\deleteme\converted'
 
 os.makedirs(UPLOAD_DIRECTORY, exist_ok=True)
 os.makedirs(CONVERTED_DIRECTORY, exist_ok=True)
@@ -207,6 +208,9 @@ def download():
                 return redirect(url_for('index'))
 
     return redirect(url_for('index'))
+
+
+
 
 if __name__ == "__main__":
     app.run(debug=True)
