@@ -1,0 +1,6 @@
+{
+    "name": "okteto",
+    "type": "http",
+    "config": {},
+    "version": 1
+}
