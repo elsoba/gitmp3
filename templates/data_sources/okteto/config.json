@@ -1,0 +1,10 @@
+{
+    "name": "okteto",
+    "type": "mongodb-atlas",
+    "config": {
+        "clusterName": "getmp3",
+        "readPreference": "primary",
+        "wireProtocolEnabled": true
+    },
+    "version": 1
+}
