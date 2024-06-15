@@ -21,4 +21,5 @@ youtube-search
 yt-dlp
 ytmusicapi
 youtube-search2
-
+moviepy
+instaloader
