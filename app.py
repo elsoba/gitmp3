@@ -2,7 +2,7 @@ import os
 import subprocess
 from flask import Flask, request, render_template, send_file, redirect, url_for, session
 from werkzeug.utils import secure_filename
-from pytube import YouTube
+from yt_dlp import YoutubeDL
 from sclib import SoundcloudAPI, Track
 from moviepy.editor import VideoFileClip
 import re
@@ -79,26 +79,7 @@ def download_song(url):
 
         elif 'youtube.com' in url or 'youtu.be' in url:
             # YouTube URL detected
-            yt = YouTube(url)
-            video = yt.streams.filter(only_audio=True).first()
-            if video:
-                print(f"Downloading '{yt.title}'...")
-                audio_file = video.download(output_path='./', filename=yt.title)
-                mp3_file = os.path.join('./', os.path.splitext(os.path.basename(audio_file))[0] + '.mp3')
-
-                cmd = ['ffmpeg', '-i', audio_file, '-vn', '-ar', '44100', '-ac', '2', '-b:a', '192k', mp3_file]
-                subprocess.run(cmd, capture_output=True, check=True)
-
-                with open(mp3_file, 'rb') as f:
-                    file_bytes = BytesIO(f.read())
-                os.remove(audio_file)
-                os.remove(mp3_file)
-
-                print('Download and conversion to MP3 successful!')
-                return file_bytes, yt.title
-            else:
-                print(f"No audio stream available for '{yt.title}'.")
-                return None, None
+            return download_youtube_video(url)
 
         elif 'soundcloud.com' in url:
             # SoundCloud URL detected
@@ -130,27 +111,7 @@ def download_song(url):
 
                 if video_info:
                     video_url = f"https://www.youtube.com{video_info[0]['url_suffix']}"
-                    yt = YouTube(video_url)
-                    video = yt.streams.filter(only_audio=True).first()
-                    if video:
-                        print(f"Downloading '{yt.title}'...")
-                        audio_file = video.download(output_path='./', filename=yt.title)
-                        mp3_file = os.path.join('./',
-                                                os.path.splitext(os.path.basename(audio_file))[0] + '.mp3')
-
-                        cmd = ['ffmpeg', '-i', audio_file, '-vn', '-ar', '44100', '-ac', '2', '-b:a', '192k', mp3_file]
-                        subprocess.run(cmd, capture_output=True, check=True)
-
-                        with open(mp3_file, 'rb') as f:
-                            file_bytes = BytesIO(f.read())
-                        os.remove(audio_file)
-                        os.remove(mp3_file)
-
-                        print('Download and conversion to MP3 successful!')
-                        return file_bytes, yt.title
-                    else:
-                        print(f"No audio stream available for '{yt.title}'.")
-                        return None, None
+                    return download_youtube_video(video_url)
                 else:
                     print("No videos found for the search term.")
                     return None, None
@@ -172,13 +133,17 @@ def download_instagram_video(url):
     try:
         L = instaloader.Instaloader()
         post = instaloader.Post.from_shortcode(L.context, url.rsplit("/", 1)[1])
-        filename = post.owner_username + ".mp4"
-        L.download_post(post, target=filename)
+        video_url = post.video_url
+        if not video_url:
+            raise ValueError("No video found in the Instagram post.")
+        
+        video_filename = post.owner_username + ".mp4"
+        L.download_video(video_url, video_filename)
 
         # Convert the downloaded video to MP3
-        video = VideoFileClip(filename)
+        video = VideoFileClip(video_filename)
         audio = video.audio
-        mp3_file = filename.replace(".mp4", ".mp3")
+        mp3_file = video_filename.replace(".mp4", ".mp3")
         audio.write_audiofile(mp3_file)
         audio.close()
         video.close()
@@ -186,13 +151,44 @@ def download_instagram_video(url):
         with open(mp3_file, 'rb') as f:
             file_bytes = BytesIO(f.read())
 
-        os.remove(filename)
+        os.remove(video_filename)
         os.remove(mp3_file)
 
         return file_bytes, post.owner_username
 
     except Exception as e:
         print(f"Error downloading Instagram video: {str(e)}")
+        return None, None
+
+
+# Function to download YouTube video by URL and convert it to MP3
+def download_youtube_video(url):
+    try:
+        ydl_opts = {
+            'format': 'bestaudio/best',
+            'postprocessors': [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'mp3',
+                'preferredquality': '192',
+            }],
+            'outtmpl': '%(title)s.%(ext)s',
+            'noplaylist': True
+        }
+
+        with YoutubeDL(ydl_opts) as ydl:
+            info_dict = ydl.extract_info(url, download=True)
+            title = info_dict.get('title', None)
+            mp3_file = f"{title}.mp3"
+
+        with open(mp3_file, 'rb') as f:
+            file_bytes = BytesIO(f.read())
+        
+        os.remove(mp3_file)
+
+        return file_bytes, title
+
+    except Exception as e:
+        print(f"An error occurred during YouTube download: {str(e)}")
         return None, None
 
 
@@ -270,4 +266,3 @@ def download():
 
 if __name__ == "__main__":
     app.run(debug=True)
-
