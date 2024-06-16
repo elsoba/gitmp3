@@ -117,62 +117,51 @@ def download_song(url):
         return None, None
 
 # Function to download YouTube audio by URL using yt-dlp and ffmpeg
-def download_youtube_audio(url):
+def download_youtube_video(url):
     try:
-        # User agent header to simulate a browser request
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
-
-        # Use yt-dlp to get the best audio stream URL
+        # Options for yt-dlp
         ydl_opts = {
-            'format': 'bestaudio/best',
-            'postprocessors': [{
-                'key': 'FFmpegExtractAudio',
-                'preferredcodec': 'mp3',
-                'preferredquality': '192',
-            }],
+            'format': 'bestvideo[height<=720]+bestaudio/best[height<=720]',
             'outtmpl': '%(title)s.%(ext)s',
-            'noplaylist': True,
+            'merge_output_format': 'mp4',
             'quiet': False,
             'no_warnings': False,
-            'sleep_interval': 3,
-            'max_sleep_interval': 5,
-            'ignoreerrors': True,
-            'user_agent': headers['User-Agent'],
-            'max_retries': 10,  # Maximum number of retries
-            'retry_interval': 5,  # Seconds to wait between retries
+            'simulate': True,  # Simulate the download, do not download
+            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         }
 
-        for attempt in range(ydl_opts['max_retries']):
-            try:
-                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                    info_dict = ydl.extract_info(url, download=True)
-                    title = info_dict.get('title', None)
-                    mp3_file = f"{title}.mp3"
+        # Simulate request to get video info
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info_dict = ydl.extract_info(url, download=False)
 
-                # Open the downloaded MP3 file and serve it as BytesIO
-                with open(mp3_file, 'rb') as f:
-                    file_bytes = BytesIO(f.read())
+            # Extract title and other metadata
+            title = info_dict.get('title', None)
+            video_url = info_dict.get('url', None)
 
-                os.remove(mp3_file)
+            # Optional: Simulate video streaming
+            # For example, you can stream the video for a few seconds
+            # to mimic a user watching before downloading
+            time.sleep(5)  # Simulate streaming for 5 seconds
 
-                return file_bytes, title
+            # Now download the actual video
+            ydl_opts['simulate'] = False
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([url])
 
-            except yt_dlp.utils.DownloadError as e:
-                print(f"Attempt {attempt + 1} failed: {str(e)}")
-                if attempt + 1 < ydl_opts['max_retries']:
-                    sleep_time = ydl_opts['retry_interval'] * (attempt + 1)
-                    print(f"Retrying in {sleep_time} seconds...")
-                    time.sleep(sleep_time)
-                else:
-                    print("Max retries reached. Giving up.")
-                    return None, None
+            # Example: Read the downloaded video file
+            video_file = f"{title}.mp4"
+            with open(video_file, 'rb') as f:
+                video_bytes = BytesIO(f.read())
+
+            # Remove the downloaded video file
+            os.remove(video_file)
+
+            return video_bytes, title
 
     except Exception as e:
-        print(f"An error occurred during YouTube download: {str(e)}")
+        print(f"Error downloading YouTube video: {str(e)}")
         return None, None
-
+        
 # Function to clear the downloaded song
 def clear_downloaded_song():
     if session.get('downloaded_song'):
