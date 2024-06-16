@@ -188,9 +188,9 @@ def download_youtube_audio(url):
 
         return file_bytes, title
 
-    except Exception as e:
-        print(f"An error occurred during YouTube download: {str(e)}")
-        return None, None
+        except Exception as e:
+            print(f"An error occurred during YouTube download: {str(e)}")
+            return None, None
 
 # Function to clear the downloaded song
 def clear_downloaded_song():
