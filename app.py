@@ -190,8 +190,10 @@ def download_youtube_audio(url):
             'max_sleep_interval': 5,
             'ignoreerrors': True,
             'user_agent': headers['User-Agent'],
-            'max_retries': 10,  # Maximum number of retries
-            'retry_interval': 5,  # Seconds to wait between retries
+            'max_retries': 10,       # Maximum number of retries
+            'retry_interval': 5,     # Seconds to wait between retries
+            'cookies': 'path/to/your/cookies.txt',  # Use cookies to handle age restrictions
+            'geo_bypass': True  # Attempt to bypass geographic restrictions
         }
 
         for attempt in range(ydl_opts['max_retries']):
@@ -199,6 +201,8 @@ def download_youtube_audio(url):
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                     info_dict = ydl.extract_info(url, download=True)
                     title = info_dict.get('title', None)
+                    if title is None:
+                        raise ValueError("Failed to retrieve video title")
                     mp3_file = f"{title}.mp3"
 
                 # Open the downloaded MP3 file and serve it as BytesIO
@@ -206,11 +210,13 @@ def download_youtube_audio(url):
                     file_bytes = BytesIO(f.read())
 
                 os.remove(mp3_file)
-
                 return file_bytes, title
 
             except yt_dlp.utils.DownloadError as e:
                 print(f"Attempt {attempt + 1} failed: {str(e)}")
+                if 'content is not available on this app' in str(e):
+                    print("Video is restricted or unavailable.")
+                    return None, None
                 if attempt + 1 < ydl_opts['max_retries']:
                     sleep_time = ydl_opts['retry_interval'] * (attempt + 1)
                     print(f"Retrying in {sleep_time} seconds...")
@@ -223,10 +229,27 @@ def download_youtube_audio(url):
         print(f"An error occurred during YouTube download: {str(e)}")
         return None, None
 
-# Function to clear the downloaded song
+# Example function to clear the downloaded song
 def clear_downloaded_song():
     if session.get('downloaded_song'):
         session.pop('downloaded_song')
+
+# Example usage of the download function
+file_bytes, filename = download_youtube_audio('https://www.youtube.com/watch?v=3BFTio5296w')
+if file_bytes and filename:
+    print(f"Downloaded: {filename}")
+else:
+    print("Download failed or video is restricted.")
+
+
+
+
+
+
+
+
+
+
 
 # Route to render the main page with the form
 @app.route('/')
