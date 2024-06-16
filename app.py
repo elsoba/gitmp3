@@ -1,16 +1,16 @@
 import os
+import re
+import time
 from flask import Flask, request, render_template, send_file, redirect, url_for, session
 from werkzeug.utils import secure_filename
 from spotipy.oauth2 import SpotifyClientCredentials
 from sclib import SoundcloudAPI, Track
 from moviepy.editor import VideoFileClip
-import re
-import spotipy
 from io import BytesIO
 from ytsearch import YTSearch
 import instaloader
 import yt_dlp
-import time
+import spotipy
 
 app = Flask(__name__)
 app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
@@ -24,12 +24,10 @@ sp = spotipy.Spotify(client_credentials_manager=SpotifyClientCredentials(
     client_secret='bac4712cc6c447769d0507190161a646'
 ))
 
-
 # Function to sanitize filenames
 def sanitize_filename(filename):
     # Remove characters that are not allowed in Windows filenames
     return re.sub(r'[<>:"/\\|?*]', '_', filename)
-
 
 # Function to download a Spotify track
 def download_spotify_track(url):
@@ -120,89 +118,70 @@ def download_song(url):
 
 # Function to download YouTube audio by URL using yt-dlp and ffmpeg
 def download_youtube_audio(url):
-        try:
-            # User agent header to simulate a browser request
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-            }
-    
-            # Use yt-dlp to get the best audio stream URL
-            ydl_opts = {
-                'format': 'bestaudio/best',
-                'postprocessors': [{
-                    'key': 'FFmpegExtractAudio',
-                    'preferredcodec': 'mp3',
-                    'preferredquality': '192',
-                }],
-                'outtmpl': '%(title)s.%(ext)s',
-                'noplaylist': True,
-                'quiet': False,
-                'no_warnings': False,
-                'sleep_interval': 3,
-                'max_sleep_interval': 5,
-                'ignoreerrors': True,
-                'user_agent': headers['User-Agent'],
-                'max_retries': 10,       # Maximum number of retries
-                'retry_interval': 5,     # Seconds to wait between retries
-            }
-    
-            for attempt in range(ydl_opts['max_retries']):
-                try:
-                    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                        info_dict = ydl.extract_info(url, download=True)
-                        title = info_dict.get('title', None)
-                        mp3_file = f"{title}.mp3"
-    
-                    # Open the downloaded MP3 file and serve it as BytesIO
-                    with open(mp3_file, 'rb') as f:
-                        file_bytes = BytesIO(f.read())
-                    
-                    os.remove(mp3_file)
-    
-                    return file_bytes, title
-    
-                except yt_dlp.utils.DownloadError as e:
-                    print(f"Attempt {attempt + 1} failed: {str(e)}")
-                    if attempt + 1 < ydl_opts['max_retries']:
-                        sleep_time = ydl_opts['retry_interval'] * (attempt + 1)
-                        print(f"Retrying in {sleep_time} seconds...")
-                        time.sleep(sleep_time)
-                    else:
-                        print("Max retries reached. Giving up.")
-                        return None, None
-    
-        except Exception as e:
-            print(f"An error occurred during YouTube download: {str(e)}")
-            return None, None
+    try:
+        # User agent header to simulate a browser request
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
 
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info_dict = ydl.extract_info(url, download=True)
-            title = info_dict.get('title', None)
-            mp3_file = f"{title}.mp3"
+        # Use yt-dlp to get the best audio stream URL
+        ydl_opts = {
+            'format': 'bestaudio/best',
+            'postprocessors': [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'mp3',
+                'preferredquality': '192',
+            }],
+            'outtmpl': '%(title)s.%(ext)s',
+            'noplaylist': True,
+            'quiet': False,
+            'no_warnings': False,
+            'sleep_interval': 3,
+            'max_sleep_interval': 5,
+            'ignoreerrors': True,
+            'user_agent': headers['User-Agent'],
+            'max_retries': 10,  # Maximum number of retries
+            'retry_interval': 5,  # Seconds to wait between retries
+        }
 
-        # Open the downloaded MP3 file and serve it as BytesIO
-        with open(mp3_file, 'rb') as f:
-            file_bytes = BytesIO(f.read())
-        
-        os.remove(mp3_file)
+        for attempt in range(ydl_opts['max_retries']):
+            try:
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    info_dict = ydl.extract_info(url, download=True)
+                    title = info_dict.get('title', None)
+                    mp3_file = f"{title}.mp3"
 
-        return file_bytes, title
+                # Open the downloaded MP3 file and serve it as BytesIO
+                with open(mp3_file, 'rb') as f:
+                    file_bytes = BytesIO(f.read())
 
-        except Exception as e:
-            print(f"An error occurred during YouTube download: {str(e)}")
-            return None, None
+                os.remove(mp3_file)
+
+                return file_bytes, title
+
+            except yt_dlp.utils.DownloadError as e:
+                print(f"Attempt {attempt + 1} failed: {str(e)}")
+                if attempt + 1 < ydl_opts['max_retries']:
+                    sleep_time = ydl_opts['retry_interval'] * (attempt + 1)
+                    print(f"Retrying in {sleep_time} seconds...")
+                    time.sleep(sleep_time)
+                else:
+                    print("Max retries reached. Giving up.")
+                    return None, None
+
+    except Exception as e:
+        print(f"An error occurred during YouTube download: {str(e)}")
+        return None, None
 
 # Function to clear the downloaded song
 def clear_downloaded_song():
     if session.get('downloaded_song'):
         session.pop('downloaded_song')
 
-
 # Route to render the main page with the form
 @app.route('/')
 def index():
     return render_template('index.html')
-
 
 # Route to handle file upload and conversion
 @app.route('/upload', methods=['POST'])
@@ -246,7 +225,6 @@ def upload():
 
     return "Failed to convert file"
 
-
 # Route to handle form submission and download song
 @app.route('/download', methods=['POST'])
 def download():
@@ -262,7 +240,6 @@ def download():
                 return redirect(url_for('index'))
 
     return redirect(url_for('index'))
-
 
 if __name__ == "__main__":
     app.run(debug=True)
