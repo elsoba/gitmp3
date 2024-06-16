@@ -120,6 +120,11 @@ def download_song(url):
 # Function to download YouTube audio by URL using yt-dlp and ffmpeg
 def download_youtube_audio(url):
     try:
+        # User agent header to simulate a browser request
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+
         # Use yt-dlp to get the best audio stream URL
         ydl_opts = {
             'format': 'bestaudio/best',
@@ -129,7 +134,9 @@ def download_youtube_audio(url):
                 'preferredquality': '192',
             }],
             'outtmpl': '%(title)s.%(ext)s',
-            'noplaylist': True
+            'noplaylist': True,
+            'quiet': True,
+            'headers': headers  # Include the headers to simulate a browser request
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -148,7 +155,6 @@ def download_youtube_audio(url):
     except Exception as e:
         print(f"An error occurred during YouTube download: {str(e)}")
         return None, None
-
 
 # Function to clear the downloaded song
 def clear_downloaded_song():
