@@ -53,9 +53,9 @@ def download_spotify_track(url):
             print("No videos found for the Spotify track.")
             return None, None
 
-        except Exception as e:
-            print(f"Error downloading Spotify track: {str(e)}")
-            return None, None
+    except Exception as e:
+        print(f"Error downloading Spotify track: {str(e)}")
+        return None, None
 
 # Function to download a song from various platforms
 def download_song(url):
