@@ -10,7 +10,7 @@ import spotipy
 from io import BytesIO
 from ytsearch import YTSearch
 import instaloader
-import streamlink
+import yt_dlp
 
 app = Flask(__name__)
 app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
@@ -48,7 +48,7 @@ def download_spotify_track(url):
 
         if video_info:
             video_url = f"https://www.youtube.com{video_info[0]['url_suffix']}"
-            return download_youtube_video(video_url)
+            return download_youtube_audio(video_url)
         else:
             print("No videos found for the Spotify track.")
             return None, None
@@ -71,7 +71,7 @@ def download_song(url):
 
         elif 'youtube.com' in url or 'youtu.be' in url:
             # YouTube URL detected
-            return download_youtube_video(url)
+            return download_youtube_audio(url)
 
         elif 'soundcloud.com' in url:
             # SoundCloud URL detected
@@ -103,7 +103,7 @@ def download_song(url):
 
                 if video_info:
                     video_url = f"https://www.youtube.com{video_info[0]['url_suffix']}"
-                    return download_youtube_video(video_url)
+                    return download_youtube_audio(video_url)
                 else:
                     print("No videos found for the search term.")
                     return None, None
@@ -153,35 +153,33 @@ def download_instagram_video(url):
         return None, None
 
 
-# Function to download YouTube video by URL and convert it to MP3 using streamlink
-def download_youtube_video(url):
+# Function to download YouTube audio by URL using yt-dlp and ffmpeg
+def download_youtube_audio(url):
     try:
-        # Use streamlink to get the audio stream URL
-        streams = streamlink.streams(url)
-        audio_stream = streams.get('audio')
+        # Use yt-dlp to get the best audio stream URL
+        ydl_opts = {
+            'format': 'bestaudio/best',
+            'postprocessors': [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'mp3',
+                'preferredquality': '192',
+            }],
+            'outtmpl': '%(title)s.%(ext)s',
+            'noplaylist': True
+        }
 
-        if audio_stream is None:
-            raise ValueError("No audio stream found")
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info_dict = ydl.extract_info(url, download=True)
+            title = info_dict.get('title', None)
+            mp3_file = f"{title}.mp3"
 
-        # Download the audio stream using ffmpeg
-        output_file = 'audio.mp3'
-        ffmpeg_command = [
-            'ffmpeg',
-            '-i', audio_stream.url,
-            '-q:a', '0',
-            '-map', 'a',
-            output_file
-        ]
-
-        subprocess.run(ffmpeg_command, check=True)
-
-        with open(output_file, 'rb') as f:
+        # Open the downloaded MP3 file and serve it as BytesIO
+        with open(mp3_file, 'rb') as f:
             file_bytes = BytesIO(f.read())
+        
+        os.remove(mp3_file)
 
-        os.remove(output_file)
-
-        yt = YouTube(url)
-        return file_bytes, yt.title
+        return file_bytes, title
 
     except Exception as e:
         print(f"An error occurred during YouTube download: {str(e)}")
