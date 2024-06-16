@@ -1,5 +1,4 @@
 import os
-import subprocess
 from flask import Flask, request, render_template, send_file, redirect, url_for, session
 from werkzeug.utils import secure_filename
 from spotipy.oauth2 import SpotifyClientCredentials
@@ -75,20 +74,24 @@ def download_song(url):
 
         elif 'soundcloud.com' in url:
             # SoundCloud URL detected
-            track = api.resolve(url)
-            if isinstance(track, Track):
-                title = sanitize_filename(track.title)
-                print(f"Downloading '{title}'...")
-                audio_file_path = os.path.join('./', secure_filename(title) + '.mp3')
-                with open(audio_file_path, 'wb+') as f:
-                    track.write_mp3_to(f)
-                with open(audio_file_path, 'rb') as f:
-                    file_bytes = BytesIO(f.read())
-                os.remove(audio_file_path)
-                print('Download from SoundCloud successful!')
-                return file_bytes, title
-            else:
-                print('Failed to resolve track from SoundCloud')
+            try:
+                track = api.resolve(url)
+                if track and isinstance(track, Track):
+                    title = sanitize_filename(track.title)
+                    print(f"Downloading '{title}'...")
+                    audio_file_path = os.path.join('./', secure_filename(title) + '.mp3')
+                    with open(audio_file_path, 'wb+') as f:
+                        track.write_mp3_to(f)
+                    with open(audio_file_path, 'rb') as f:
+                        file_bytes = BytesIO(f.read())
+                    os.remove(audio_file_path)
+                    print('Download from SoundCloud successful!')
+                    return file_bytes, title
+                else:
+                    print('Failed to resolve track from SoundCloud')
+                    return None, None
+            except Exception as e:
+                print(f"Error resolving SoundCloud track: {str(e)}")
                 return None, None
 
         elif 'instagram.com' in url:
