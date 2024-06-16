@@ -9,8 +9,8 @@ import re
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 from io import BytesIO
-import instaloader
 from ytsearch import YTSearch
+import instaloader
 
 app = Flask(__name__)
 app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
