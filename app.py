@@ -10,6 +10,7 @@ from io import BytesIO
 from ytsearch import YTSearch
 import instaloader
 import yt_dlp
+import time
 
 app = Flask(__name__)
 app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
@@ -119,30 +120,60 @@ def download_song(url):
 
 # Function to download YouTube audio by URL using yt-dlp and ffmpeg
 def download_youtube_audio(url):
-    try:
-        # User agent header to simulate a browser request
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
-
-        # Use yt-dlp to get the best audio stream URL
-        ydl_opts = {
-            'format': 'bestaudio/best',
-            'postprocessors': [{
-                'key': 'FFmpegExtractAudio',
-                'preferredcodec': 'mp3',
-                'preferredquality': '192',
-            }],
-            'outtmpl': '%(title)s.%(ext)s',
-            'noplaylist': True,
-            'quiet': False,
-            'no_warnings': False,
-            'sleep_interval': 10,
-            'max_sleep_interval': 30,
-            'ignoreerrors': True,
-            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-        }
-
+        try:
+            # User agent header to simulate a browser request
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+    
+            # Use yt-dlp to get the best audio stream URL
+            ydl_opts = {
+                'format': 'bestaudio/best',
+                'postprocessors': [{
+                    'key': 'FFmpegExtractAudio',
+                    'preferredcodec': 'mp3',
+                    'preferredquality': '192',
+                }],
+                'outtmpl': '%(title)s.%(ext)s',
+                'noplaylist': True,
+                'quiet': False,
+                'no_warnings': False,
+                'sleep_interval': 3,
+                'max_sleep_interval': 5,
+                'ignoreerrors': True,
+                'user_agent': headers['User-Agent'],
+                'max_retries': 10,       # Maximum number of retries
+                'retry_interval': 5,     # Seconds to wait between retries
+            }
+    
+            for attempt in range(ydl_opts['max_retries']):
+                try:
+                    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                        info_dict = ydl.extract_info(url, download=True)
+                        title = info_dict.get('title', None)
+                        mp3_file = f"{title}.mp3"
+    
+                    # Open the downloaded MP3 file and serve it as BytesIO
+                    with open(mp3_file, 'rb') as f:
+                        file_bytes = BytesIO(f.read())
+                    
+                    os.remove(mp3_file)
+    
+                    return file_bytes, title
+    
+                except yt_dlp.utils.DownloadError as e:
+                    print(f"Attempt {attempt + 1} failed: {str(e)}")
+                    if attempt + 1 < ydl_opts['max_retries']:
+                        sleep_time = ydl_opts['retry_interval'] * (attempt + 1)
+                        print(f"Retrying in {sleep_time} seconds...")
+                        time.sleep(sleep_time)
+                    else:
+                        print("Max retries reached. Giving up.")
+                        return None, None
+    
+        except Exception as e:
+            print(f"An error occurred during YouTube download: {str(e)}")
+            return None, None
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info_dict = ydl.extract_info(url, download=True)
