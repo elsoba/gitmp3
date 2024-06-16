@@ -2,7 +2,7 @@ import os
 import subprocess
 from flask import Flask, request, render_template, send_file, redirect, url_for, session
 from werkzeug.utils import secure_filename
-from yt_dlp import YoutubeDL
+import youtube_dl
 from sclib import SoundcloudAPI, Track
 from moviepy.editor import VideoFileClip
 import re
@@ -175,7 +175,7 @@ def download_youtube_video(url):
             'noplaylist': True
         }
 
-        with YoutubeDL(ydl_opts) as ydl:
+        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             info_dict = ydl.extract_info(url, download=True)
             title = info_dict.get('title', None)
             mp3_file = f"{title}.mp3"
