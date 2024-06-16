@@ -132,6 +132,7 @@ def download_song(url):
                 os.remove(audio_file_path)
                 print('Download from SoundCloud successful!')
                 return file_bytes, title
+
             else:
                 print('Failed to resolve track from SoundCloud')
                 return None, None
