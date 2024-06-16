@@ -2,15 +2,15 @@ import os
 import subprocess
 from flask import Flask, request, render_template, send_file, redirect, url_for, session
 from werkzeug.utils import secure_filename
-from yt_dlp import YoutubeDL
+from spotipy.oauth2 import SpotifyClientCredentials
 from sclib import SoundcloudAPI, Track
 from moviepy.editor import VideoFileClip
 import re
 import spotipy
-from spotipy.oauth2 import SpotifyClientCredentials
 from io import BytesIO
 from ytsearch import YTSearch
 import instaloader
+import yt_dlp
 
 app = Flask(__name__)
 app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
@@ -36,29 +36,21 @@ def download_spotify_track(url):
     try:
         clear_downloaded_song()
 
-        spotdl_command = [
-            'spotdl',
-            url,
-            '--format', 'mp3',
-            '--overwrite', 'skip',
-            '--output', '.'  # Output directory is irrelevant now
-        ]
+        # Get track details from Spotify
+        track = sp.track(url)
+        artist = track['artists'][0]['name']
+        title = track['name']
+        search_query = f"{artist} {title} official audio"
 
-        process = subprocess.Popen(spotdl_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        stdout, stderr = process.communicate()
+        # Use YouTube search to find the track
+        search_engine = YTSearch()
+        video_info = search_engine.search_by_term(search_query, max_results=1)
 
-        if process.returncode != 0:
-            print(f"Error downloading song: {stderr.decode('utf-8')}")
-            return None, None
-
-        mp3_files = [f for f in os.listdir('.') if f.endswith('.mp3')]
-        if mp3_files:
-            downloaded_song = os.path.join('.', mp3_files[0])
-            with open(downloaded_song, 'rb') as f:
-                file_bytes = BytesIO(f.read())
-            os.remove(downloaded_song)
-            return file_bytes, os.path.splitext(mp3_files[0])[0]
+        if video_info:
+            video_url = f"https://www.youtube.com{video_info[0]['url_suffix']}"
+            return download_youtube_audio(video_url)
         else:
+            print("No videos found for the Spotify track.")
             return None, None
 
     except Exception as e:
@@ -79,7 +71,7 @@ def download_song(url):
 
         elif 'youtube.com' in url or 'youtu.be' in url:
             # YouTube URL detected
-            return download_youtube_video(url)
+            return download_youtube_audio(url)
 
         elif 'soundcloud.com' in url:
             # SoundCloud URL detected
@@ -111,7 +103,7 @@ def download_song(url):
 
                 if video_info:
                     video_url = f"https://www.youtube.com{video_info[0]['url_suffix']}"
-                    return download_youtube_video(video_url)
+                    return download_youtube_audio(video_url)
                 else:
                     print("No videos found for the search term.")
                     return None, None
@@ -135,7 +127,7 @@ def download_instagram_video(url):
         post = instaloader.Post.from_shortcode(L.context, url.rsplit("/", 1)[1])
         video_url = post.video_url
         if not video_url:
-            raise ValueError("No video found in the Instagram post.")
+            raise ValueError("No video found in the Instagram post")
         
         video_filename = post.owner_username + ".mp4"
         L.download_video(video_url, video_filename)
@@ -161,9 +153,10 @@ def download_instagram_video(url):
         return None, None
 
 
-# Function to download YouTube video by URL and convert it to MP3
-def download_youtube_video(url):
+# Function to download YouTube audio by URL using yt-dlp and ffmpeg
+def download_youtube_audio(url):
     try:
+        # Use yt-dlp to get the best audio stream URL
         ydl_opts = {
             'format': 'bestaudio/best',
             'postprocessors': [{
@@ -175,11 +168,12 @@ def download_youtube_video(url):
             'noplaylist': True
         }
 
-        with YoutubeDL(ydl_opts) as ydl:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info_dict = ydl.extract_info(url, download=True)
             title = info_dict.get('title', None)
             mp3_file = f"{title}.mp3"
 
+        # Open the downloaded MP3 file and serve it as BytesIO
         with open(mp3_file, 'rb') as f:
             file_bytes = BytesIO(f.read())
         
