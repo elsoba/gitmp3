@@ -23,3 +23,4 @@ ytmusicapi
 youtube-search2
 moviepy
 instaloader
+celery
