@@ -56,7 +56,6 @@ def download_spotify_track(url):
         print(f"Error downloading Spotify track: {str(e)}")
         return None, None
 
-
 # Function to download a song from various platforms
 def download_song(url):
     try:
@@ -74,24 +73,20 @@ def download_song(url):
 
         elif 'soundcloud.com' in url:
             # SoundCloud URL detected
-            try:
-                track = api.resolve(url)
-                if track and isinstance(track, Track):
-                    title = sanitize_filename(track.title)
-                    print(f"Downloading '{title}'...")
-                    audio_file_path = os.path.join('./', secure_filename(title) + '.mp3')
-                    with open(audio_file_path, 'wb+') as f:
-                        track.write_mp3_to(f)
-                    with open(audio_file_path, 'rb') as f:
-                        file_bytes = BytesIO(f.read())
-                    os.remove(audio_file_path)
-                    print('Download from SoundCloud successful!')
-                    return file_bytes, title
-                else:
-                    print('Failed to resolve track from SoundCloud')
-                    return None, None
-            except Exception as e:
-                print(f"Error resolving SoundCloud track: {str(e)}")
+            track = api.resolve(url)
+            if isinstance(track, Track):
+                title = sanitize_filename(track.title)
+                print(f"Downloading '{title}'...")
+                audio_file_path = os.path.join('./', secure_filename(title) + '.mp3')
+                with open(audio_file_path, 'wb+') as f:
+                    track.write_mp3_to(f)
+                with open(audio_file_path, 'rb') as f:
+                    file_bytes = BytesIO(f.read())
+                os.remove(audio_file_path)
+                print('Download from SoundCloud successful!')
+                return file_bytes, title
+            else:
+                print('Failed to resolve track from SoundCloud')
                 return None, None
 
         elif 'instagram.com' in url:
@@ -121,40 +116,6 @@ def download_song(url):
     except Exception as e:
         print(f"Error downloading song: {str(e)}")
         return None, None
-
-
-# Function to download Instagram video by URL and convert it to MP3
-def download_instagram_video(url):
-    try:
-        L = instaloader.Instaloader()
-        post = instaloader.Post.from_shortcode(L.context, url.rsplit("/", 1)[1])
-        video_url = post.video_url
-        if not video_url:
-            raise ValueError("No video found in the Instagram post")
-        
-        video_filename = post.owner_username + ".mp4"
-        L.download_video(video_url, video_filename)
-
-        # Convert the downloaded video to MP3
-        video = VideoFileClip(video_filename)
-        audio = video.audio
-        mp3_file = video_filename.replace(".mp4", ".mp3")
-        audio.write_audiofile(mp3_file)
-        audio.close()
-        video.close()
-
-        with open(mp3_file, 'rb') as f:
-            file_bytes = BytesIO(f.read())
-
-        os.remove(video_filename)
-        os.remove(mp3_file)
-
-        return file_bytes, post.owner_username
-
-    except Exception as e:
-        print(f"Error downloading Instagram video: {str(e)}")
-        return None, None
-
 
 # Function to download YouTube audio by URL using yt-dlp and ffmpeg
 def download_youtube_audio(url):
