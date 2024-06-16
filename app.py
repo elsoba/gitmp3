@@ -2,7 +2,7 @@ import os
 import subprocess
 from flask import Flask, request, render_template, send_file, redirect, url_for, session
 from werkzeug.utils import secure_filename
-from pytube import YouTube
+from yt_dlp import YoutubeDL
 from sclib import SoundcloudAPI, Track
 from moviepy.editor import VideoFileClip
 import re
@@ -11,7 +11,6 @@ from spotipy.oauth2 import SpotifyClientCredentials
 from io import BytesIO
 from ytsearch import YTSearch
 import instaloader
-import streamlink
 
 app = Flask(__name__)
 app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
@@ -162,35 +161,31 @@ def download_instagram_video(url):
         return None, None
 
 
-# Function to download YouTube video by URL and convert it to MP3 using streamlink
+# Function to download YouTube video by URL and convert it to MP3
 def download_youtube_video(url):
     try:
-        # Use streamlink to get the audio stream URL
-        streams = streamlink.streams(url)
-        audio_stream = streams.get('audio')
+        ydl_opts = {
+            'format': 'bestaudio/best',
+            'postprocessors': [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'mp3',
+                'preferredquality': '192',
+            }],
+            'outtmpl': '%(title)s.%(ext)s',
+            'noplaylist': True
+        }
 
-        if audio_stream is None:
-            raise ValueError("No audio stream found")
+        with YoutubeDL(ydl_opts) as ydl:
+            info_dict = ydl.extract_info(url, download=True)
+            title = info_dict.get('title', None)
+            mp3_file = f"{title}.mp3"
 
-        # Download the audio stream using ffmpeg
-        output_file = 'audio.mp3'
-        ffmpeg_command = [
-            'ffmpeg',
-            '-i', audio_stream.url,
-            '-q:a', '0',
-            '-map', 'a',
-            output_file
-        ]
-
-        subprocess.run(ffmpeg_command, check=True)
-
-        with open(output_file, 'rb') as f:
+        with open(mp3_file, 'rb') as f:
             file_bytes = BytesIO(f.read())
+        
+        os.remove(mp3_file)
 
-        os.remove(output_file)
-
-        yt = YouTube(url)
-        return file_bytes, yt.title
+        return file_bytes, title
 
     except Exception as e:
         print(f"An error occurred during YouTube download: {str(e)}")
