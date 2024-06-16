@@ -135,9 +135,14 @@ def download_youtube_audio(url):
             }],
             'outtmpl': '%(title)s.%(ext)s',
             'noplaylist': True,
-            'quiet': True,
-            'headers': headers  # Include the headers to simulate a browser request
+            'quiet': False,
+            'no_warnings': False,
+            'sleep_interval': 10,
+            'max_sleep_interval': 30,
+            'ignoreerrors': True,
+            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         }
+
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info_dict = ydl.extract_info(url, download=True)
