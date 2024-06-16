@@ -20,8 +20,8 @@ api = SoundcloudAPI()
 
 # Spotify API client
 sp = spotipy.Spotify(client_credentials_manager=SpotifyClientCredentials(
-    client_id='your_spotify_client_id',
-    client_secret='your_spotify_client_secret'
+    client_id='cec06f10e37e43b4823ffd0a85896306',
+    client_secret='bac4712cc6c447769d0507190161a646'
 ))
 
 
