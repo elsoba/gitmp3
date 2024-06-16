@@ -7,34 +7,29 @@ from sclib import SoundcloudAPI, Track
 from moviepy.editor import VideoFileClip
 import re
 import spotipy
+from spotipy.oauth2 import SpotifyClientCredentials
 from io import BytesIO
 from ytsearch import YTSearch
 import instaloader
-from celery import Celery
 
 app = Flask(__name__)
 app.secret_key = b'_5#y2L"F4Q8z\n\xec]/'
 
-# Configure Celery
-def make_celery(app):
-    celery = Celery(app.import_name, backend='redis://localhost', broker='redis://localhost')
-    celery.conf.update(app.config)
-    class ContextTask(celery.Task):
-        def __call__(self, *args, **kwargs):
-            with app.app_context():
-                return self.run(*args, **kwargs)
-    celery.Task = ContextTask
-    return celery
-
-celery = make_celery(app)
-
 # SoundCloud API client
 api = SoundcloudAPI()
+
+# Spotify API client
+sp = spotipy.Spotify(client_credentials_manager=SpotifyClientCredentials(
+    client_id='your_spotify_client_id',
+    client_secret='your_spotify_client_secret'
+))
 
 
 # Function to sanitize filenames
 def sanitize_filename(filename):
+    # Remove characters that are not allowed in Windows filenames
     return re.sub(r'[<>:"/\\|?*]', '_', filename)
+
 
 # Function to download a Spotify track
 def download_spotify_track(url):
@@ -70,20 +65,24 @@ def download_spotify_track(url):
         print(f"Error downloading Spotify track: {str(e)}")
         return None, None
 
+
 # Function to download a song from various platforms
 def download_song(url):
     try:
         clear_downloaded_song()
 
         if 'spotify.com' in url:
+            # Spotify URL detected
             file_bytes, filename = download_spotify_track(url)
             if file_bytes:
                 return file_bytes, filename
 
         elif 'youtube.com' in url or 'youtu.be' in url:
-            return download_youtube_video.delay(url).get()
+            # YouTube URL detected
+            return download_youtube_video(url)
 
         elif 'soundcloud.com' in url:
+            # SoundCloud URL detected
             track = api.resolve(url)
             if isinstance(track, Track):
                 title = sanitize_filename(track.title)
@@ -101,22 +100,33 @@ def download_song(url):
                 return None, None
 
         elif 'instagram.com' in url:
+            # Instagram URL detected
             return download_instagram_video(url)
 
-        else:
-            search_engine = YTSearch()
-            video_info = search_engine.search_by_term(url, max_results=1)
+        elif 'youtube.com' not in url and 'youtu.be' not in url:
+            # Assume it's a YouTube search term
+            try:
+                search_engine = YTSearch()
+                video_info = search_engine.search_by_term(url, max_results=1)
 
-            if video_info:
-                video_url = f"https://www.youtube.com{video_info[0]['url_suffix']}"
-                return download_youtube_video.delay(video_url).get()
-            else:
-                print("No videos found for the search term.")
+                if video_info:
+                    video_url = f"https://www.youtube.com{video_info[0]['url_suffix']}"
+                    return download_youtube_video(video_url)
+                else:
+                    print("No videos found for the search term.")
+                    return None, None
+
+            except Exception as e:
+                print(f"An error occurred during YouTube download: {str(e)}")
                 return None, None
+
+        print("Unsupported URL or unable to download.")
+        return None, None
 
     except Exception as e:
         print(f"Error downloading song: {str(e)}")
         return None, None
+
 
 # Function to download Instagram video by URL and convert it to MP3
 def download_instagram_video(url):
@@ -130,6 +140,7 @@ def download_instagram_video(url):
         video_filename = post.owner_username + ".mp4"
         L.download_video(video_url, video_filename)
 
+        # Convert the downloaded video to MP3
         video = VideoFileClip(video_filename)
         audio = video.audio
         mp3_file = video_filename.replace(".mp4", ".mp3")
@@ -149,45 +160,49 @@ def download_instagram_video(url):
         print(f"Error downloading Instagram video: {str(e)}")
         return None, None
 
-@celery.task
+
+# Function to download YouTube video by URL and convert it to MP3
 def download_youtube_video(url):
-    ydl_opts = {
-        'format': 'bestaudio/best',
-        'noplaylist': True,
-        'quiet': True,
-        'no_warnings': True,
-        'outtmpl': '%(title)s.%(ext)s',
-        'postprocessors': [{
-            'key': 'FFmpegExtractAudio',
-            'preferredcodec': 'mp3',
-            'preferredquality': '192',
-        }],
-    }
+    try:
+        ydl_opts = {
+            'format': 'bestaudio/best',
+            'postprocessors': [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'mp3',
+                'preferredquality': '192',
+            }],
+            'outtmpl': '%(title)s.%(ext)s',
+            'noplaylist': True
+        }
 
-    with YoutubeDL(ydl_opts) as ydl:
-        info_dict = ydl.extract_info(url, download=False)
-        title = info_dict.get('title', None)
-        ext = info_dict.get('ext', None)
-        ydl.download([url])
+        with YoutubeDL(ydl_opts) as ydl:
+            info_dict = ydl.extract_info(url, download=True)
+            title = info_dict.get('title', None)
+            mp3_file = f"{title}.mp3"
 
-    temp_file = title + ".mp3"
+        with open(mp3_file, 'rb') as f:
+            file_bytes = BytesIO(f.read())
+        
+        os.remove(mp3_file)
 
-    with open(temp_file, 'rb') as f:
-        file_bytes = BytesIO(f.read())
+        return file_bytes, title
 
-    os.remove(temp_file)
+    except Exception as e:
+        print(f"An error occurred during YouTube download: {str(e)}")
+        return None, None
 
-    return file_bytes, title
 
 # Function to clear the downloaded song
 def clear_downloaded_song():
     if session.get('downloaded_song'):
         session.pop('downloaded_song')
 
+
 # Route to render the main page with the form
 @app.route('/')
 def index():
     return render_template('index.html')
+
 
 # Route to handle file upload and conversion
 @app.route('/upload', methods=['POST'])
@@ -202,9 +217,11 @@ def upload():
 
     if file:
         try:
+            # Save the uploaded file temporarily
             temp_file = './temp_video.mp4'
             file.save(temp_file)
 
+            # Convert uploaded video to MP3
             video = VideoFileClip(temp_file)
             audio = video.audio
             mp3_file = './temp_audio.mp3'
@@ -212,8 +229,10 @@ def upload():
             audio.close()
             video.close()
 
+            # Remove the temporary video file
             os.remove(temp_file)
 
+            # Serve the converted MP3 file as an attachment
             with open(mp3_file, 'rb') as f:
                 file_bytes = BytesIO(f.read())
 
@@ -227,31 +246,23 @@ def upload():
 
     return "Failed to convert file"
 
+
+# Route to handle form submission and download song
 @app.route('/download', methods=['POST'])
 def download():
     search_input = request.form.get('search_input')
 
     if search_input:
-        task = download_youtube_video.delay(search_input)
-        session['task_id'] = task.id
-        return redirect(url_for('task_status'))
+        file_bytes, filename = download_song(search_input)
+        if file_bytes and filename:
+            try:
+                return send_file(file_bytes, as_attachment=True, download_name=f"{filename}.mp3", mimetype='audio/mpeg')
+            except Exception as e:
+                print(f"Error serving song: {str(e)}")
+                return redirect(url_for('index'))
 
     return redirect(url_for('index'))
 
-@app.route('/status')
-def task_status():
-    task_id = session.get('task_id')
-    if not task_id:
-        return redirect(url_for('index'))
-    
-    task = download_youtube_video.AsyncResult(task_id)
-    if task.state == 'SUCCESS':
-        file_bytes, filename = task.result
-        return send_file(file_bytes, as_attachment=True, download_name=f"{filename}.mp3", mimetype='audio/mpeg')
-    elif task.state == 'FAILURE':
-        return "Task failed"
-
-    return "Task in progress"
 
 if __name__ == "__main__":
     app.run(debug=True)
